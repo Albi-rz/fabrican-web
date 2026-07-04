@@ -134,6 +134,19 @@
 
   #contadorProductos{ color:var(--texto-secundario); font-size:0.6em; font-weight:700; }
 
+  .populares-wrap{
+    max-width:1400px; margin:0 auto 40px; background:linear-gradient(135deg, #DCF3E4 0%, #FFF8EC 100%);
+    border-radius:24px; padding:28px 6%; border:2px dashed #6FB98F;
+  }
+  body.dark .populares-wrap{ background:linear-gradient(135deg, rgba(111,185,143,0.12) 0%, rgba(38,50,58,0) 100%); }
+  .populares-title{ font-size:1.3rem; color:var(--texto); margin-bottom:4px; }
+  .populares-sub{ font-size:0.88rem; color:var(--texto-secundario); margin-bottom:20px; }
+  .populares-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:18px;
+  }
+  .populares-grid .card{ box-shadow:0 6px 0 rgba(111,185,143,0.3); }
+  @media (max-width:600px){ .populares-wrap{ padding:22px 5%; } }
+
   .herramientas-catalogo{
     display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;
     max-width:900px; margin:0 auto 24px;
@@ -386,10 +399,18 @@
   .card.destacado{ animation:destacadoPulse 1.6s ease-in-out 2; }
   .card h3{padding:0 20px; margin-top:14px; font-size:1.15rem; color:var(--texto);}
   .card p{padding:8px 20px 0; font-size:0.9rem; color:var(--texto-secundario); line-height:1.5;}
+  .card-tags{ margin:14px 20px 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .tag{
-    margin:14px 20px 0; display:inline-block; background:var(--crema); color:var(--naranja-osc);
+    display:inline-block; background:var(--crema); color:var(--naranja-osc);
     font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:20px;
   }
+  .badge-disp{
+    display:inline-block; font-size:0.72rem; font-weight:800; padding:4px 10px; border-radius:20px;
+  }
+  .badge-stock{ background:#DCF3E4; color:#2E7D4F; }
+  .badge-pedido{ background:#FFEAD1; color:#B5680A; }
+  body.dark .badge-stock{ background:rgba(111,185,143,0.2); color:#8FDBB0; }
+  body.dark .badge-pedido{ background:rgba(255,138,61,0.18); color:#FFB877; }
 
   /* POR QUE ELEGIRNOS */
   .porque{
@@ -554,6 +575,12 @@
   <h2 class="section-title">Nuestros productos <span id="contadorProductos"></span></h2>
   <p class="section-sub">Explora nuestra línea de productos para mascotas, fabricados en plástico resistente.</p>
 
+  <div class="populares-wrap" id="popularesWrap" style="display:none;">
+    <h3 class="populares-title">✅ Disponibles ahora</h3>
+    <p class="populares-sub">Estos productos ya están fabricados y listos para entrega inmediata.</p>
+    <div class="populares-grid" id="popularesGrid"></div>
+  </div>
+
   <div class="herramientas-catalogo">
     <div class="buscador-wrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -691,10 +718,10 @@
       historia_imagen: ''
     },
     productos: [
-      {orden:1, nombre:'Comedero doble gatito', categoria:'comederos', descripcion:'Plato doble en forma de gato, disponible en varios colores, fácil de lavar.', imagen:'imagenes/comedero-gato.png'},
-      {orden:2, nombre:'Bandeja para gatos', categoria:'higiene', descripcion:'Espaciosa y fácil de limpiar, bordes altos para evitar derrames de arena.', imagen:''},
-      {orden:3, nombre:'Pelota resistente', categoria:'juguetes', descripcion:'Material grueso y duradero, soporta mordidas intensas.', imagen:''},
-      {orden:4, nombre:'Cajón transportador', categoria:'transporte', descripcion:'Ventilado y seguro, pensado para traslados cortos y largos.', imagen:''}
+      {orden:1, nombre:'Comedero doble gatito', categoria:'comederos', descripcion:'Plato doble en forma de gato, disponible en varios colores, fácil de lavar.', imagen:'imagenes/comedero-gato.png', disponibilidad:'stock'},
+      {orden:2, nombre:'Bandeja para gatos', categoria:'higiene', descripcion:'Espaciosa y fácil de limpiar, bordes altos para evitar derrames de arena.', imagen:'', disponibilidad:'pedido'},
+      {orden:3, nombre:'Pelota resistente', categoria:'juguetes', descripcion:'Material grueso y duradero, soporta mordidas intensas.', imagen:'', disponibilidad:'stock'},
+      {orden:4, nombre:'Cajón transportador', categoria:'transporte', descripcion:'Ventilado y seguro, pensado para traslados cortos y largos.', imagen:'', disponibilidad:'pedido'}
     ]
   };
 
@@ -737,15 +764,21 @@
     const lightboxAttr = tieneImagen ? ` data-lightbox="${escapeHtml(p.imagen)}"` : '';
     const nombreEsc = escapeHtml(p.nombre);
     const slug = slugify(p.nombre);
+    const badgeStock = p.disponibilidad === 'stock'
+      ? `<span class="badge-disp badge-stock">✅ En stock</span>`
+      : `<span class="badge-disp badge-pedido">🛠️ Bajo pedido</span>`;
     return `
-    <div class="card fade-in" data-categoria="${escapeHtml(p.categoria)}" data-slug="${slug}" data-orden="${p.orden || 0}" data-nombre="${escapeHtml(p.nombre.toLowerCase())}">
+    <div class="card fade-in" data-categoria="${escapeHtml(p.categoria)}" data-slug="${slug}" data-orden="${p.orden || 0}" data-nombre="${escapeHtml(p.nombre.toLowerCase())}" data-disponibilidad="${p.disponibilidad}">
       <div class="card-img" style="background:${cat.bg}; overflow:hidden; position:relative;"${lightboxAttr}>
         ${imgHtml}
         <button class="btn-compartir" data-compartir-slug="${slug}" title="Copiar link de este producto" onclick="event.stopPropagation(); window.compartirProducto(this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
         </button>
       </div>
-      <span class="tag">${escapeHtml(p.categoria)}</span>
+      <div class="card-tags">
+        <span class="tag">${escapeHtml(p.categoria)}</span>
+        ${badgeStock}
+      </div>
       <h3>${nombreEsc}</h3>
       <p>${escapeHtml(p.descripcion)}</p>
       <button class="btn-add-lista" data-producto="${nombreEsc}">
@@ -822,10 +855,21 @@
       const grid = document.getElementById('productosGrid');
       const productos = (data.productos || []).slice().sort((a,b) => (a.orden||0) - (b.orden||0));
       grid.innerHTML = productos.map(tarjetaHTML).join('');
+
+      const enStock = productos.filter(p => p.disponibilidad === 'stock');
+      const popularesWrap = document.getElementById('popularesWrap');
+      const popularesGrid = document.getElementById('popularesGrid');
+      if(enStock.length > 0){
+        popularesGrid.innerHTML = enStock.map(tarjetaHTML).join('');
+        popularesWrap.style.display = 'block';
+      } else {
+        popularesWrap.style.display = 'none';
+      }
+
       const contador = document.getElementById('contadorProductos');
       if(contador) contador.textContent = '(' + productos.length + ')';
       inicializarInteraccion(numeroWhatsapp);
-      console.log('[Fabrican] Sitio cargado con', productos.length, 'productos');
+      console.log('[Fabrican] Sitio cargado con', productos.length, 'productos,', enStock.length, 'en stock');
     } catch(err){
       console.error('[Fabrican] Error dentro de cargarSitio:', err);
     }
@@ -840,7 +884,8 @@
         nombre: f.nombre,
         categoria: (f.categoria || '').trim(),
         descripcion: f.descripcion || '',
-        imagen: f.imagen_url || ''
+        imagen: f.imagen_url || '',
+        disponibilidad: String(f.disponibilidad || '').trim().toLowerCase() === 'stock' ? 'stock' : 'pedido'
       }));
   }
 
@@ -1118,20 +1163,24 @@
     });
     actualizarBarra();
 
+    function sincronizarBotonesProducto(producto, seleccionado){
+      document.querySelectorAll('.btn-add-lista[data-producto="' + CSS.escape(producto) + '"]').forEach(b => {
+        b.classList.toggle('selected', seleccionado);
+        b.querySelector('.btn-add-texto').textContent = seleccionado ? 'Agregado ✓' : 'Agregar a mi lista';
+      });
+    }
+
     addBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const producto = btn.dataset.producto;
-        const texto = btn.querySelector('.btn-add-texto');
         const idx = listaSeleccion.indexOf(producto);
-        if(idx === -1){
+        const nuevoEstado = idx === -1;
+        if(nuevoEstado){
           listaSeleccion.push(producto);
-          btn.classList.add('selected');
-          texto.textContent = 'Agregado ✓';
         } else {
           listaSeleccion.splice(idx, 1);
-          btn.classList.remove('selected');
-          texto.textContent = 'Agregar a mi lista';
         }
+        sincronizarBotonesProducto(producto, nuevoEstado);
         guardarLista();
         actualizarBarra();
       });
