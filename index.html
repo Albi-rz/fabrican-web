@@ -227,6 +227,7 @@
   @media (max-width:600px){
     .lista-bar{flex-wrap:wrap; justify-content:center; text-align:center; bottom:14px; padding:12px 16px;}
     .lista-bar-items{display:none;}
+    body.lista-activa .wa-float{ bottom:100px; }
   }
 
   /* HERO */
@@ -258,15 +259,29 @@
     font-weight:800; text-decoration:none; font-size:1rem;
     box-shadow:0 5px 0 var(--naranja-osc);
     transition:transform .15s;
+    display:inline-flex; align-items:center; gap:10px;
   }
   .btn-primary:hover{transform:translateY(-2px);}
   .btn-secondary{
     background:transparent; color:var(--azul); padding:16px 30px; border-radius:40px;
     font-weight:800; text-decoration:none; font-size:1rem; border:3px solid var(--azul);
+    display:inline-flex; align-items:center; gap:10px;
   }
+  .btn-primary svg, .btn-secondary svg{ width:20px; height:20px; flex-shrink:0; }
   .hero-visual{
     flex:1; min-width:280px; display:flex; justify-content:center; z-index:2;
   }
+  .scroll-hint{
+    position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
+    color:var(--naranja-osc); opacity:0.6; animation:scrollBounce 1.8s ease-in-out infinite;
+    z-index:2;
+  }
+  .scroll-hint svg{width:26px; height:26px;}
+  @keyframes scrollBounce{
+    0%,100%{ transform:translateX(-50%) translateY(0); }
+    50%{ transform:translateX(-50%) translateY(8px); }
+  }
+  @media (max-width:600px){ .scroll-hint{display:none;} }
   .blob{
     width:340px; height:340px; background:var(--verde);
     border-radius:42% 58% 65% 35% / 45% 45% 55% 55%;
@@ -397,7 +412,7 @@
     background:#25D366; width:60px; height:60px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
     box-shadow:0 6px 16px rgba(0,0,0,0.25);
-    text-decoration:none;
+    text-decoration:none; transition:bottom .25s ease;
     animation:pulse 2.5s infinite;
   }
   .wa-float svg{width:30px; height:30px; fill:white;}
@@ -451,8 +466,14 @@
     <h1>Productos de plástico <span>resistentes</span><br>para el día a día de tu mejor amigo</h1>
     <p>Fabricamos comederos, casas y accesorios duraderos para perros y gatos, directo del taller a tu hogar. Calidad de fábrica, sin intermediarios.</p>
     <div class="hero-buttons">
-      <a href="#contacto" class="btn-primary">Ver catálogo y pedir</a>
-      <a href="#historia" class="btn-secondary">Conócenos</a>
+      <a href="#productos" class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1.5"/><circle cx="18" cy="21" r="1.5"/><path d="M2.5 3h2.6l2.6 12.4a2 2 0 002 1.6h8.1a2 2 0 002-1.6L21.5 7H6"/></svg>
+        Ver catálogo y pedir
+      </a>
+      <a href="#historia" class="btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21c-4-3-8-6.4-8-11a5 5 0 019-3 5 5 0 019 3c0 4.6-4 8-8 11z"/></svg>
+        Conócenos
+      </a>
     </div>
   </div>
   <div class="hero-visual">
@@ -466,6 +487,9 @@
       </svg>
     </div>
   </div>
+  <a href="#historia" class="scroll-hint" aria-label="Bajar para ver más">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v15M5 12l7 7 7-7"/></svg>
+  </a>
 </section>
 
 <section class="historia fade-in" id="historia">
@@ -490,7 +514,7 @@
 
 <section id="productos">
   <h2 class="section-title">Nuestros productos</h2>
-  <p class="section-sub">Una muestra de lo que fabricamos. Próximamente con fotos reales de cada artículo.</p>
+  <p class="section-sub">Explora nuestra línea de productos para mascotas, fabricados en plástico resistente.</p>
 
   <div class="buscador-wrap">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -943,6 +967,9 @@
 
     // MI LISTA DE CONSULTA
     let listaSeleccion = [];
+    try {
+      listaSeleccion = JSON.parse(localStorage.getItem('fabricanListaConsulta') || '[]');
+    } catch(e){ listaSeleccion = []; }
 
     const listaBar = document.getElementById('listaBar');
     const listaBarCount = document.getElementById('listaBarCount');
@@ -951,9 +978,23 @@
     const listaBarClear = document.getElementById('listaBarClear');
     const addBtns = document.querySelectorAll('.btn-add-lista');
 
+    function guardarLista(){
+      try { localStorage.setItem('fabricanListaConsulta', JSON.stringify(listaSeleccion)); } catch(e){}
+    }
+
+    function construirMensajeLista(){
+      const listado = listaSeleccion.map((p, i) => (i+1) + '. ' + p).join('\n');
+      return 'Hola, quiero consultar por estos productos:\n' + listado;
+    }
+
+    const waFloatBtn = document.getElementById('waFloatBtn');
+    const waFloatBtnUrlBase = waFloatBtn.href;
+
     function actualizarBarra(){
+      document.body.classList.toggle('lista-activa', listaSeleccion.length > 0);
       if(listaSeleccion.length === 0){
         listaBar.classList.remove('visible');
+        waFloatBtn.href = waFloatBtnUrlBase;
         return;
       }
       listaBar.classList.add('visible');
@@ -961,7 +1002,17 @@
         ? '1 producto seleccionado'
         : listaSeleccion.length + ' productos seleccionados';
       listaBarItems.textContent = listaSeleccion.join(', ');
+      waFloatBtn.href = waFloatBtnUrlBase + '?text=' + encodeURIComponent(construirMensajeLista());
     }
+
+    // Restaurar visualmente los botones ya marcados como "Agregado" desde una sesion anterior
+    addBtns.forEach(btn => {
+      if(listaSeleccion.includes(btn.dataset.producto)){
+        btn.classList.add('selected');
+        btn.querySelector('.btn-add-texto').textContent = 'Agregado ✓';
+      }
+    });
+    actualizarBarra();
 
     addBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -977,6 +1028,7 @@
           btn.classList.remove('selected');
           texto.textContent = 'Agregar a mi lista';
         }
+        guardarLista();
         actualizarBarra();
       });
     });
@@ -987,14 +1039,13 @@
         btn.classList.remove('selected');
         btn.querySelector('.btn-add-texto').textContent = 'Agregar a mi lista';
       });
+      guardarLista();
       actualizarBarra();
     });
 
     listaBarEnviar.addEventListener('click', () => {
       if(listaSeleccion.length === 0) return;
-      const listado = listaSeleccion.map((p, i) => (i+1) + '. ' + p).join('\n');
-      const mensaje = 'Hola, quiero consultar por estos productos:\n' + listado;
-      const url = 'https://wa.me/' + numeroWhatsapp + '?text=' + encodeURIComponent(mensaje);
+      const url = 'https://wa.me/' + numeroWhatsapp + '?text=' + encodeURIComponent(construirMensajeLista());
       window.open(url, '_blank');
     });
   }
