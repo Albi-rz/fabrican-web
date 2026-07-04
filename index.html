@@ -574,8 +574,24 @@
     inicializarInteraccion(numeroWhatsapp);
   }
 
-  fetch(DATA_URL)
-    .then(r => r.json())
+  function cargarViaJSONP(url, timeoutMs){
+    return new Promise((resolve, reject) => {
+      const callbackName = 'fabricanCB_' + Date.now();
+      const script = document.createElement('script');
+      const limpiar = () => {
+        delete window[callbackName];
+        script.remove();
+        clearTimeout(timer);
+      };
+      const timer = setTimeout(() => { limpiar(); reject(new Error('timeout')); }, timeoutMs || 8000);
+      window[callbackName] = (data) => { limpiar(); resolve(data); };
+      script.onerror = () => { limpiar(); reject(new Error('script error')); };
+      script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+      document.body.appendChild(script);
+    });
+  }
+
+  cargarViaJSONP(DATA_URL)
     .then(data => cargarSitio(data))
     .catch(() => cargarSitio(FALLBACK_DATA));
 
