@@ -574,24 +574,32 @@
     inicializarInteraccion(numeroWhatsapp);
   }
 
-  function cargarViaJSONP(url, timeoutMs){
+  function cargarViaIframe(url, timeoutMs){
     return new Promise((resolve, reject) => {
-      const callbackName = 'fabricanCB_' + Date.now();
-      const script = document.createElement('script');
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+
       const limpiar = () => {
-        delete window[callbackName];
-        script.remove();
+        window.removeEventListener('message', handler);
+        iframe.remove();
         clearTimeout(timer);
       };
-      const timer = setTimeout(() => { limpiar(); reject(new Error('timeout')); }, timeoutMs || 8000);
-      window[callbackName] = (data) => { limpiar(); resolve(data); };
-      script.onerror = () => { limpiar(); reject(new Error('script error')); };
-      script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
-      document.body.appendChild(script);
+      const timer = setTimeout(() => { limpiar(); reject(new Error('timeout')); }, timeoutMs || 10000);
+
+      function handler(event){
+        if(event.data && typeof event.data === 'object' && Array.isArray(event.data.productos)){
+          limpiar();
+          resolve(event.data);
+        }
+      }
+      window.addEventListener('message', handler);
+      iframe.onerror = () => { limpiar(); reject(new Error('iframe error')); };
+      iframe.src = url;
+      document.body.appendChild(iframe);
     });
   }
 
-  cargarViaJSONP(DATA_URL)
+  cargarViaIframe(DATA_URL)
     .then(data => cargarSitio(data))
     .catch(() => cargarSitio(FALLBACK_DATA));
 
