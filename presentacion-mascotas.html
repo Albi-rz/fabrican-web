@@ -519,11 +519,25 @@
     return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
+  // Si una imagen de producto no carga (permiso de Drive, link roto, etc.),
+  // reemplaza el <img> roto por el icono plano de su categoria.
+  window.mostrarIconoFallback = function(img, categoria){
+    const cat = ICONOS_CATEGORIA[categoria] || ICONOS_CATEGORIA.comederos;
+    const wrapper = img.parentElement;
+    if(wrapper){
+      wrapper.innerHTML = cat.svg;
+      wrapper.removeAttribute('data-lightbox');
+      wrapper.classList.remove('card-img'); // se re-agrega abajo para forzar reflow visual limpio
+      wrapper.classList.add('card-img');
+    }
+  };
+
   function tarjetaHTML(p){
     const cat = ICONOS_CATEGORIA[p.categoria] || ICONOS_CATEGORIA.comederos;
     const tieneImagen = p.imagen && p.imagen.trim() !== '';
+    const catEsc = escapeHtml(p.categoria);
     const imgHtml = tieneImagen
-      ? `<img src="${escapeHtml(p.imagen)}" alt="${escapeHtml(p.nombre)}" style="width:100%; height:100%; object-fit:cover;">`
+      ? `<img src="${escapeHtml(p.imagen)}" alt="${escapeHtml(p.nombre)}" style="width:100%; height:100%; object-fit:cover;" onerror="window.mostrarIconoFallback(this, '${catEsc}')">`
       : cat.svg;
     const lightboxAttr = tieneImagen ? ` data-lightbox="${escapeHtml(p.imagen)}"` : '';
     const nombreEsc = escapeHtml(p.nombre);
@@ -542,17 +556,27 @@
     </div>`;
   }
 
+  window.mostrarLogoFallback = function(img){
+    img.parentElement.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="6" cy="7" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="4" cy="13" r="1.6"/><circle cx="20" cy="13" r="1.6"/></svg> Fabrican';
+  };
+
   function aplicarConfig(config){
     if(config.logo_url){
       document.getElementById('logoContainer').innerHTML =
-        `<img src="${escapeHtml(config.logo_url)}" alt="Fabrican" style="height:34px; width:auto;">`;
+        `<img src="${escapeHtml(config.logo_url)}" alt="Fabrican" style="height:34px; width:auto;" onerror="window.mostrarLogoFallback(this)">`;
     }
     if(config.hero_imagen){
-      document.getElementById('heroImg').src = config.hero_imagen;
+      const heroImg = document.getElementById('heroImg');
+      const heroImgOriginal = heroImg.src;
+      heroImg.onerror = () => { heroImg.onerror = null; heroImg.src = heroImgOriginal; };
+      heroImg.src = config.hero_imagen;
     }
     if(config.historia_imagen){
-      document.getElementById('historiaImgWrap').innerHTML =
-        `<img src="${escapeHtml(config.historia_imagen)}" alt="Nuestra historia" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`;
+      const wrap = document.getElementById('historiaImgWrap');
+      const original = wrap.innerHTML;
+      wrap.innerHTML = `<img src="${escapeHtml(config.historia_imagen)}" alt="Nuestra historia" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`;
+      wrap.querySelector('img').onerror = function(){ wrap.innerHTML = original; };
     }
     const numero = config.whatsapp_numero || FALLBACK_DATA.config.whatsapp_numero;
     const waUrl = 'https://wa.me/' + numero;
