@@ -325,7 +325,7 @@
   .blob svg{width:200px; height:200px;}
 
   /* SECCIONES */
-  section{padding:70px 6%; position:relative;}
+  section{padding:70px 6%; position:relative; scroll-margin-top:88px;}
   .section-title{
     text-align:center; font-size:clamp(1.8rem,4vw,2.6rem); color:var(--naranja-osc);
     margin-bottom:10px;
@@ -791,7 +791,7 @@
     if(config.historia_imagen){
       const wrap = document.getElementById('historiaImgWrap');
       const original = wrap.innerHTML;
-      wrap.innerHTML = `<img src="${escapeHtml(config.historia_imagen)}" alt="Nuestra historia" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`;
+      wrap.innerHTML = `<img src="${escapeHtml(config.historia_imagen)}" alt="Nuestra historia" loading="lazy" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`;
       wrap.querySelector('img').onerror = function(){ wrap.innerHTML = original; };
     }
     const numero = config.whatsapp_numero || FALLBACK_DATA.config.whatsapp_numero;
@@ -868,35 +868,37 @@
       cargarSitio(FALLBACK_DATA);
     });
 
-  // ================== INTERACCION (se ejecuta una vez cargado el catálogo) ==================
+  // ================== UI INDEPENDIENTE DEL CATALOGO (se inicializa de inmediato) ==================
+
+  // MODO OSCURO
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.addEventListener('click', () => {
+    const esOscuro = document.body.classList.toggle('dark');
+    localStorage.setItem('fabricanTheme', esOscuro ? 'dark' : 'light');
+    themeToggle.setAttribute('aria-label', esOscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+  });
+  themeToggle.setAttribute('aria-label', document.body.classList.contains('dark') ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+
+  // MENU MOVIL
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const navList = document.getElementById('navList');
+  const menuOverlay = document.getElementById('menuOverlay');
+
+  function closeMenu(){
+    hamburgerBtn.classList.remove('open');
+    navList.classList.remove('open');
+    menuOverlay.classList.remove('open');
+  }
+  hamburgerBtn.addEventListener('click', () => {
+    hamburgerBtn.classList.toggle('open');
+    navList.classList.toggle('open');
+    menuOverlay.classList.toggle('open');
+  });
+  menuOverlay.addEventListener('click', closeMenu);
+  navList.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+
+  // ================== INTERACCION DEPENDIENTE DEL CATALOGO (se ejecuta una vez cargado) ==================
   function inicializarInteraccion(numeroWhatsapp){
-
-    // MODO OSCURO
-    const themeToggle = document.getElementById('themeToggle');
-    themeToggle.addEventListener('click', () => {
-      const esOscuro = document.body.classList.toggle('dark');
-      localStorage.setItem('fabricanTheme', esOscuro ? 'dark' : 'light');
-      themeToggle.setAttribute('aria-label', esOscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
-    });
-    themeToggle.setAttribute('aria-label', document.body.classList.contains('dark') ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
-
-    // MENU MOVIL
-    const hamburgerBtn = document.getElementById('hamburgerBtn');
-    const navList = document.getElementById('navList');
-    const menuOverlay = document.getElementById('menuOverlay');
-
-    function closeMenu(){
-      hamburgerBtn.classList.remove('open');
-      navList.classList.remove('open');
-      menuOverlay.classList.remove('open');
-    }
-    hamburgerBtn.addEventListener('click', () => {
-      hamburgerBtn.classList.toggle('open');
-      navList.classList.toggle('open');
-      menuOverlay.classList.toggle('open');
-    });
-    menuOverlay.addEventListener('click', closeMenu);
-    navList.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
 
     // ANIMACIONES AL HACER SCROLL
     const observer = new IntersectionObserver((entries) => {
