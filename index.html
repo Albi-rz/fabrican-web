@@ -567,11 +567,16 @@
   }
 
   function cargarSitio(data){
-    const numeroWhatsapp = aplicarConfig(data.config || {});
-    const grid = document.getElementById('productosGrid');
-    const productos = (data.productos || []).slice().sort((a,b) => (a.orden||0) - (b.orden||0));
-    grid.innerHTML = productos.map(tarjetaHTML).join('');
-    inicializarInteraccion(numeroWhatsapp);
+    try {
+      const numeroWhatsapp = aplicarConfig(data.config || {});
+      const grid = document.getElementById('productosGrid');
+      const productos = (data.productos || []).slice().sort((a,b) => (a.orden||0) - (b.orden||0));
+      grid.innerHTML = productos.map(tarjetaHTML).join('');
+      inicializarInteraccion(numeroWhatsapp);
+      console.log('[Fabrican] Sitio cargado con', productos.length, 'productos');
+    } catch(err){
+      console.error('[Fabrican] Error dentro de cargarSitio:', err);
+    }
   }
 
   function cargarViaIframe(url, timeoutMs){
@@ -584,24 +589,31 @@
         iframe.remove();
         clearTimeout(timer);
       };
-      const timer = setTimeout(() => { limpiar(); reject(new Error('timeout')); }, timeoutMs || 10000);
+      const timer = setTimeout(() => {
+        console.warn('[Fabrican] Timeout esperando datos del Apps Script (', timeoutMs || 15000, 'ms )');
+        limpiar();
+        reject(new Error('timeout'));
+      }, timeoutMs || 15000);
 
       function handler(event){
+        console.log('[Fabrican] Mensaje recibido de', event.origin, event.data);
         if(event.data && typeof event.data === 'object' && Array.isArray(event.data.productos)){
+          console.log('[Fabrican] Datos validos recibidos, productos:', event.data.productos.length);
           limpiar();
           resolve(event.data);
         }
       }
       window.addEventListener('message', handler);
-      iframe.onerror = () => { limpiar(); reject(new Error('iframe error')); };
+      iframe.onerror = (err) => { console.error('[Fabrican] Error cargando iframe', err); limpiar(); reject(new Error('iframe error')); };
       iframe.src = url;
       document.body.appendChild(iframe);
+      console.log('[Fabrican] Iframe creado, src =', iframe.src);
     });
   }
 
   cargarViaIframe(DATA_URL)
-    .then(data => cargarSitio(data))
-    .catch(() => cargarSitio(FALLBACK_DATA));
+    .then(data => { console.log('[Fabrican] Cargando sitio con datos reales'); cargarSitio(data); })
+    .catch((err) => { console.warn('[Fabrican] Usando datos de respaldo. Motivo:', err && err.message); cargarSitio(FALLBACK_DATA); });
 
   // ================== INTERACCION (se ejecuta una vez cargado el catálogo) ==================
   function inicializarInteraccion(numeroWhatsapp){
