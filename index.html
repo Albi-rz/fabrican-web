@@ -144,6 +144,25 @@
   }
   .btn-add-lista svg{width:16px; height:16px;}
 
+  /* SKELETON LOADER */
+  @keyframes skeletonPulse{
+    0%{opacity:0.6;} 50%{opacity:1;} 100%{opacity:0.6;}
+  }
+  .skeleton-card{
+    background:white; border-radius:24px; overflow:hidden;
+    box-shadow:0 8px 0 rgba(0,0,0,0.05);
+  }
+  .skeleton-img{ width:100%; aspect-ratio:1/1; background:#EEE3D3; animation:skeletonPulse 1.4s ease-in-out infinite; }
+  .skeleton-line{ height:14px; margin:16px 20px 0; border-radius:7px; background:#EEE3D3; animation:skeletonPulse 1.4s ease-in-out infinite; }
+  .skeleton-line.corta{ width:40%; }
+  .skeleton-line.larga{ width:85%; }
+  .skeleton-line.media{ width:65%; margin-bottom:20px; }
+
+  /* MENSAJE SIN RESULTADOS */
+  .sin-resultados{
+    grid-column:1/-1; text-align:center; padding:50px 20px; color:var(--tinta); opacity:0.7;
+  }
+
   /* BARRA FLOTANTE: MI LISTA DE CONSULTA */
   .lista-bar{
     position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(140%);
@@ -408,7 +427,11 @@
   </div>
 
   <div class="productos-grid" id="productosGrid">
-    <p id="cargandoProductos" style="grid-column:1/-1; text-align:center; opacity:0.6;">Cargando catálogo…</p>
+    <!-- Skeleton mientras carga el catálogo real -->
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line corta"></div><div class="skeleton-line larga"></div><div class="skeleton-line media"></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line corta"></div><div class="skeleton-line larga"></div><div class="skeleton-line media"></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line corta"></div><div class="skeleton-line larga"></div><div class="skeleton-line media"></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line corta"></div><div class="skeleton-line larga"></div><div class="skeleton-line media"></div></div>
   </div>
 
   <div class="ver-mas-wrap">
@@ -543,7 +566,7 @@
     const tieneImagen = p.imagen && p.imagen.trim() !== '';
     const catEsc = escapeHtml(p.categoria);
     const imgHtml = tieneImagen
-      ? `<img src="${escapeHtml(p.imagen)}" alt="${escapeHtml(p.nombre)}" style="width:100%; height:100%; object-fit:cover;" onerror="window.mostrarIconoFallback(this, '${catEsc}')">`
+      ? `<img src="${escapeHtml(p.imagen)}" alt="${escapeHtml(p.nombre)}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="window.mostrarIconoFallback(this, '${catEsc}')">`
       : cat.svg;
     const lightboxAttr = tieneImagen ? ` data-lightbox="${escapeHtml(p.imagen)}"` : '';
     const nombreEsc = escapeHtml(p.nombre);
@@ -686,6 +709,15 @@
     const filtroBtns = document.querySelectorAll('.filtro-btn');
     const cards = document.querySelectorAll('.productos-grid .card');
     const verMasBtn = document.getElementById('verMasBtn');
+    const grid = document.getElementById('productosGrid');
+    let mensajeSinResultados = grid.querySelector('.sin-resultados');
+    if(!mensajeSinResultados){
+      mensajeSinResultados = document.createElement('p');
+      mensajeSinResultados.className = 'sin-resultados';
+      mensajeSinResultados.textContent = 'Aún no hay productos en esta categoría.';
+      grid.appendChild(mensajeSinResultados);
+    }
+    mensajeSinResultados.style.display = 'none';
     let filtroActivo = 'todos';
     let expandido = false;
 
@@ -709,6 +741,7 @@
         visibles++;
       });
       verMasBtn.style.display = (!expandido && totalCoincide > LIMITE_INICIAL) ? 'inline-block' : 'none';
+      mensajeSinResultados.style.display = totalCoincide === 0 ? 'block' : 'none';
     }
 
     filtroBtns.forEach(btn => {
