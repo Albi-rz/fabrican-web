@@ -108,7 +108,15 @@
     cursor:pointer; transition:background .2s, color .2s;
   }
   .filtro-btn.active, .filtro-btn:hover{background:var(--naranja); color:white;}
-  .card.hidden{display:none;}
+  .card.hidden, .card.limit-hidden{display:none;}
+
+  .ver-mas-wrap{display:flex; justify-content:center; margin-top:10px;}
+  .btn-ver-mas{
+    background:white; border:2px solid var(--naranja-osc); color:var(--naranja-osc);
+    padding:12px 30px; border-radius:30px; font-weight:800; font-size:0.9rem;
+    cursor:pointer; transition:background .2s, color .2s;
+  }
+  .btn-ver-mas:hover{background:var(--naranja-osc); color:white;}
 
   /* LIGHTBOX */
   .lightbox-overlay{
@@ -447,6 +455,10 @@
     </div>
 
   </div>
+
+  <div class="ver-mas-wrap">
+    <button class="btn-ver-mas" id="verMasBtn">Ver más productos</button>
+  </div>
 </section>
 
 <section class="porque fade-in" id="porque">
@@ -554,23 +566,53 @@
   }, {threshold:0.15});
   document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-  // FILTRO DE PRODUCTOS
+  // FILTRO DE PRODUCTOS + VER MAS
+  const LIMITE_INICIAL = 9;
   const filtroBtns = document.querySelectorAll('.filtro-btn');
   const cards = document.querySelectorAll('.productos-grid .card');
+  const verMasBtn = document.getElementById('verMasBtn');
+  let filtroActivo = 'todos';
+  let expandido = false;
+
+  function refrescarVistaProductos(){
+    let visibles = 0;
+    let totalCoincide = 0;
+    cards.forEach(card => {
+      const coincide = filtroActivo === 'todos' || card.dataset.categoria === filtroActivo;
+      card.classList.toggle('hidden', !coincide);
+      if(!coincide){
+        card.classList.remove('limit-hidden');
+        return;
+      }
+      totalCoincide++;
+      if(!expandido && visibles >= LIMITE_INICIAL){
+        card.classList.add('limit-hidden');
+      } else {
+        card.classList.remove('limit-hidden');
+        // re-dispara la animación fade-in si aún no se mostró
+        if(!card.classList.contains('visible')) observer.observe(card);
+      }
+      visibles++;
+    });
+    verMasBtn.style.display = (!expandido && totalCoincide > LIMITE_INICIAL) ? 'inline-block' : 'none';
+  }
+
   filtroBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       filtroBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const filtro = btn.dataset.filter;
-      cards.forEach(card => {
-        if(filtro === 'todos' || card.dataset.categoria === filtro){
-          card.classList.remove('hidden');
-        } else {
-          card.classList.add('hidden');
-        }
-      });
+      filtroActivo = btn.dataset.filter;
+      expandido = false;
+      refrescarVistaProductos();
     });
   });
+
+  verMasBtn.addEventListener('click', () => {
+    expandido = true;
+    refrescarVistaProductos();
+  });
+
+  refrescarVistaProductos();
 
   // LIGHTBOX
   const lightboxOverlay = document.getElementById('lightboxOverlay');
