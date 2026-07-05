@@ -876,7 +876,7 @@
   }
 
   function parseProductosCSV(texto){
-    const filas = Papa.parse(texto, {header:true, skipEmptyLines:true}).data;
+    const filas = Papa.parse(texto, {header:true, skipEmptyLines:true, transformHeader: h => h.trim().toLowerCase()}).data;
     return filas
       .filter(f => f.nombre && String(f.activo).trim().toUpperCase() === 'TRUE')
       .map(f => ({
@@ -890,7 +890,7 @@
   }
 
   function parseConfigCSV(texto){
-    const filas = Papa.parse(texto, {header:true, skipEmptyLines:true}).data;
+    const filas = Papa.parse(texto, {header:true, skipEmptyLines:true, transformHeader: h => h.trim().toLowerCase()}).data;
     const config = {};
     filas.forEach(f => { if(f.clave) config[f.clave.trim()] = (f.valor || '').trim(); });
     return config;
