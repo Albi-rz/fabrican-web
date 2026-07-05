@@ -31,7 +31,7 @@
     --texto-secundario:#B7C0C6;
   }
   body.dark .historia-text p{ color:var(--texto-secundario); }
-  body.dark .card p{ color:var(--texto-secundario); }
+  body.dark .card-desc{ color:var(--texto-secundario); }
   body.dark .filtro-btn:not(.active){ color:var(--naranja); }
   body.dark .filtro-btn.active, body.dark .filtro-btn:hover{ color:white; }
   body.dark .card-img svg{ opacity:0.9; }
@@ -398,7 +398,17 @@
   }
   .card.destacado{ animation:destacadoPulse 1.6s ease-in-out 2; }
   .card h3{padding:0 20px; margin-top:14px; font-size:1.15rem; color:var(--texto);}
-  .card p{padding:8px 20px 0; font-size:0.9rem; color:var(--texto-secundario); line-height:1.5;}
+  .card-desc{
+    padding:8px 20px 0; font-size:0.9rem; color:var(--texto-secundario); line-height:1.5;
+    overflow-wrap:anywhere; word-break:break-word;
+    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .card-desc.expandido{ display:block; overflow:visible; }
+  .btn-ver-desc{
+    margin:4px 20px 0; background:none; border:none; color:var(--naranja-osc);
+    font-weight:800; font-size:0.82rem; cursor:pointer; padding:0; display:none;
+    text-decoration:underline;
+  }
   .card-tags{ margin:14px 20px 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .tag{
     display:inline-block; background:var(--crema); color:var(--naranja-osc);
@@ -738,6 +748,23 @@
 
   // Si una imagen de producto no carga (permiso de Drive, link roto, etc.),
   // reemplaza el <img> roto por el icono plano de su categoria.
+  window.toggleDescripcion = function(btn){
+    const desc = btn.previousElementSibling;
+    const expandido = desc.classList.toggle('expandido');
+    btn.textContent = expandido ? 'Ver menos' : 'Ver más';
+  };
+
+  function revisarDescripcionesLargas(contenedor){
+    contenedor.querySelectorAll('.card-desc').forEach(desc => {
+      const btn = desc.nextElementSibling;
+      if(!btn || !btn.classList.contains('btn-ver-desc')) return;
+      // se resetea por si se vuelve a llamar (ej. al reordenar productos)
+      desc.classList.remove('expandido');
+      btn.textContent = 'Ver más';
+      btn.style.display = desc.scrollHeight > desc.clientHeight + 1 ? 'inline-block' : 'none';
+    });
+  }
+
   window.mostrarIconoFallback = function(img, categoria){
     const cat = ICONOS_CATEGORIA[categoria] || ICONOS_CATEGORIA.comederos;
     const wrapper = img.parentElement;
@@ -780,7 +807,8 @@
         ${badgeStock}
       </div>
       <h3>${nombreEsc}</h3>
-      <p>${escapeHtml(p.descripcion)}</p>
+      <p class="card-desc">${escapeHtml(p.descripcion)}</p>
+      <button class="btn-ver-desc" type="button" onclick="window.toggleDescripcion(this)">Ver más</button>
       <button class="btn-add-lista" data-producto="${nombreEsc}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
         <span class="btn-add-texto">Agregar a mi lista</span>
@@ -869,6 +897,10 @@
       const contador = document.getElementById('contadorProductos');
       if(contador) contador.textContent = '(' + productos.length + ')';
       inicializarInteraccion(numeroWhatsapp);
+      requestAnimationFrame(() => {
+        revisarDescripcionesLargas(grid);
+        if(enStock.length > 0) revisarDescripcionesLargas(popularesGrid);
+      });
       console.log('[Fabrican] Sitio cargado con', productos.length, 'productos,', enStock.length, 'en stock');
     } catch(err){
       console.error('[Fabrican] Error dentro de cargarSitio:', err);
@@ -1004,6 +1036,7 @@
         ? 'No encontramos productos que coincidan con "' + buscadorInput.value.trim() + '".'
         : 'Aún no hay productos en esta categoría.';
       mensajeSinResultados.style.display = totalCoincide === 0 ? 'block' : 'none';
+      revisarDescripcionesLargas(grid);
     }
 
     const buscadorInput = document.getElementById('buscadorProductos');
