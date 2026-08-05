@@ -200,6 +200,19 @@
     position:absolute; top:24px; right:30px; background:none; border:none; color:white;
     font-size:2.2rem; cursor:pointer; line-height:1;
   }
+  .lightbox-nav{
+    position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.15);
+    border:none; color:white; width:48px; height:48px; border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:background .2s;
+  }
+  .lightbox-nav:hover{ background:rgba(255,255,255,0.3); }
+  .lightbox-nav svg{ width:24px; height:24px; }
+  .lightbox-prev{ left:16px; }
+  .lightbox-next{ right:16px; }
+  .lightbox-contador{
+    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    color:white; background:rgba(0,0,0,0.5); padding:6px 16px; border-radius:20px; font-size:0.85rem; font-weight:700;
+  }
   .card-img{cursor:zoom-in;}
 
   /* BOTON AGREGAR A MI LISTA (por producto) */
@@ -382,6 +395,10 @@
     height:160px; display:flex; align-items:center; justify-content:center;
   }
   .card-img svg{width:70px; height:70px;}
+  .foto-contador{
+    position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,0.55); color:white;
+    font-size:0.72rem; font-weight:700; padding:4px 9px; border-radius:20px; z-index:2;
+  }
   .btn-compartir{
     position:absolute; top:10px; right:10px; width:34px; height:34px; border-radius:50%;
     background:rgba(255,255,255,0.9); border:none; color:var(--tinta); cursor:pointer;
@@ -692,7 +709,14 @@
 <!-- LIGHTBOX -->
 <div class="lightbox-overlay" id="lightboxOverlay">
   <button class="lightbox-close" id="lightboxClose" aria-label="Cerrar">&times;</button>
+  <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Foto anterior">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 6l-6 6 6 6"/></svg>
+  </button>
   <img id="lightboxImg" src="" alt="Vista ampliada del producto">
+  <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Siguiente foto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+  <span class="lightbox-contador" id="lightboxContador"></span>
 </div>
 
 <!-- BARRA FLOTANTE: MI LISTA DE CONSULTA -->
@@ -725,10 +749,10 @@
       historia_imagen: ''
     },
     productos: [
-      {orden:1, nombre:'Comedero doble gatito', categoria:'comederos', descripcion:'Plato doble en forma de gato, disponible en varios colores, fácil de lavar.', imagen:'imagenes/comedero-gato.png', disponibilidad:'stock'},
-      {orden:2, nombre:'Bandeja para gatos', categoria:'higiene', descripcion:'Espaciosa y fácil de limpiar, bordes altos para evitar derrames de arena.', imagen:'', disponibilidad:'pedido'},
-      {orden:3, nombre:'Pelota resistente', categoria:'juguetes', descripcion:'Material grueso y duradero, soporta mordidas intensas.', imagen:'', disponibilidad:'stock'},
-      {orden:4, nombre:'Cajón transportador', categoria:'transporte', descripcion:'Ventilado y seguro, pensado para traslados cortos y largos.', imagen:'', disponibilidad:'pedido'}
+      {orden:1, nombre:'Comedero doble gatito', categoria:'comederos', descripcion:'Plato doble en forma de gato, disponible en varios colores, fácil de lavar.', imagen:'imagenes/comedero-gato.png', imagenes:['imagenes/comedero-gato.png'], disponibilidad:'stock'},
+      {orden:2, nombre:'Bandeja para gatos', categoria:'higiene', descripcion:'Espaciosa y fácil de limpiar, bordes altos para evitar derrames de arena.', imagen:'', imagenes:[], disponibilidad:'pedido'},
+      {orden:3, nombre:'Pelota resistente', categoria:'juguetes', descripcion:'Material grueso y duradero, soporta mordidas intensas.', imagen:'', imagenes:[], disponibilidad:'stock'},
+      {orden:4, nombre:'Cajón transportador', categoria:'transporte', descripcion:'Ventilado y seguro, pensado para traslados cortos y largos.', imagen:'', imagenes:[], disponibilidad:'pedido'}
     ]
   };
 
@@ -808,7 +832,10 @@
     const imgHtml = tieneImagen
       ? `<img src="${escapeHtml(p.imagen)}" alt="${escapeHtml(p.nombre)}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="window.mostrarIconoFallback(this, '${catEsc}')">`
       : cat.svg;
-    const lightboxAttr = tieneImagen ? ` data-lightbox="${escapeHtml(p.imagen)}"` : '';
+    const imagenesJSON = escapeHtml(JSON.stringify(p.imagenes || []));
+    const lightboxAttr = tieneImagen ? ` data-lightbox-images="${imagenesJSON}"` : '';
+    const contadorFotos = (p.imagenes && p.imagenes.length > 1)
+      ? `<span class="foto-contador">📷 ${p.imagenes.length}</span>` : '';
     const nombreEsc = escapeHtml(p.nombre);
     const slug = slugify(p.nombre);
     const badgeStock = p.disponibilidad === 'stock'
@@ -818,6 +845,7 @@
     <div class="card fade-in" data-categoria="${escapeHtml(p.categoria)}" data-slug="${slug}" data-orden="${p.orden || 0}" data-nombre="${escapeHtml(p.nombre.toLowerCase())}" data-disponibilidad="${p.disponibilidad}">
       <div class="card-img" style="background:${cat.bg}; overflow:hidden; position:relative;"${lightboxAttr}>
         ${imgHtml}
+        ${contadorFotos}
         <button class="btn-compartir" data-compartir-slug="${slug}" title="Copiar link de este producto" onclick="event.stopPropagation(); window.compartirProducto(this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
         </button>
@@ -956,15 +984,22 @@
     return filas
       .filter(f => f.nombre && String(f.activo).trim().toUpperCase() === 'TRUE')
       .filter(f => String(f.ps_activo || '').trim().toUpperCase() !== 'FALSE') // oculto si PetStock lo dio de baja
-      .map(f => ({
-        orden: Number(f.orden) || 0,
-        nombre: f.nombre,
-        categoria: (f.categoria || '').trim(),
-        descripcion: f.descripcion || '',
-        imagen: f.imagen_url || '',
-        disponibilidad: String(f.disponibilidad || '').trim().toLowerCase() === 'stock' ? 'stock' : 'pedido',
-        precio: parseFloat(String(f.ps_precioventa || '').replace(',', '.')) || null
-      }));
+      .map(f => {
+        const imagenes = [
+          f.imagen_url, f.imagen_url_2, f.imagen_url_3,
+          f.imagen_url_4, f.imagen_url_5, f.imagen_url_6
+        ].map(u => (u || '').trim()).filter(u => u !== '');
+        return {
+          orden: Number(f.orden) || 0,
+          nombre: f.nombre,
+          categoria: (f.categoria || '').trim(),
+          descripcion: f.descripcion || '',
+          imagen: imagenes[0] || '',
+          imagenes: imagenes,
+          disponibilidad: String(f.disponibilidad || '').trim().toLowerCase() === 'stock' ? 'stock' : 'pedido',
+          precio: parseFloat(String(f.ps_precioventa || '').replace(',', '.')) || null
+        };
+      });
   }
 
   function parseConfigCSV(texto){
@@ -1173,24 +1208,70 @@
       }
     }
 
-    // LIGHTBOX
+    // LIGHTBOX (con soporte para varias fotos por producto)
     const lightboxOverlay = document.getElementById('lightboxOverlay');
     const lightboxImg = document.getElementById('lightboxImg');
     const lightboxClose = document.getElementById('lightboxClose');
+    const lightboxPrev = document.getElementById('lightboxPrev');
+    const lightboxNext = document.getElementById('lightboxNext');
+    const lightboxContador = document.getElementById('lightboxContador');
 
-    document.querySelectorAll('[data-lightbox]').forEach(el => {
+    let galeriaActual = [];
+    let galeriaIndice = 0;
+
+    function mostrarFotoGaleria(){
+      lightboxImg.src = galeriaActual[galeriaIndice];
+      const varias = galeriaActual.length > 1;
+      lightboxPrev.style.display = varias ? 'flex' : 'none';
+      lightboxNext.style.display = varias ? 'flex' : 'none';
+      lightboxContador.style.display = varias ? 'block' : 'none';
+      lightboxContador.textContent = (galeriaIndice + 1) + ' / ' + galeriaActual.length;
+    }
+
+    document.querySelectorAll('[data-lightbox-images]').forEach(el => {
       el.addEventListener('click', () => {
-        lightboxImg.src = el.dataset.lightbox;
+        try {
+          galeriaActual = JSON.parse(el.dataset.lightboxImages) || [];
+        } catch(e){ galeriaActual = []; }
+        if(galeriaActual.length === 0) return;
+        galeriaIndice = 0;
+        mostrarFotoGaleria();
         lightboxOverlay.classList.add('open');
       });
     });
+
     function closeLightbox(){ lightboxOverlay.classList.remove('open'); lightboxImg.src=''; }
     lightboxClose.addEventListener('click', closeLightbox);
     lightboxOverlay.addEventListener('click', (e) => {
       if(e.target === lightboxOverlay) closeLightbox();
     });
+
+    function fotoAnterior(){
+      galeriaIndice = (galeriaIndice - 1 + galeriaActual.length) % galeriaActual.length;
+      mostrarFotoGaleria();
+    }
+    function fotoSiguiente(){
+      galeriaIndice = (galeriaIndice + 1) % galeriaActual.length;
+      mostrarFotoGaleria();
+    }
+    lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); fotoAnterior(); });
+    lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); fotoSiguiente(); });
+
     document.addEventListener('keydown', (e) => {
+      if(!lightboxOverlay.classList.contains('open')) return;
       if(e.key === 'Escape') closeLightbox();
+      if(e.key === 'ArrowLeft') fotoAnterior();
+      if(e.key === 'ArrowRight') fotoSiguiente();
+    });
+
+    // Deslizar con el dedo en mobile (swipe)
+    let touchStartX = null;
+    lightboxOverlay.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+    lightboxOverlay.addEventListener('touchend', (e) => {
+      if(touchStartX === null) return;
+      const delta = e.changedTouches[0].clientX - touchStartX;
+      if(Math.abs(delta) > 40){ delta > 0 ? fotoAnterior() : fotoSiguiente(); }
+      touchStartX = null;
     });
 
     // MI LISTA DE CONSULTA
