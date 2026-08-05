@@ -398,6 +398,7 @@
   }
   .card.destacado{ animation:destacadoPulse 1.6s ease-in-out 2; }
   .card h3{padding:0 20px; margin-top:14px; font-size:1.15rem; color:var(--texto);}
+  .card-precio{ padding:4px 20px 0; font-size:1.05rem; font-weight:800; color:var(--naranja-osc); }
   .card-desc{
     padding:8px 20px 0; font-size:0.9rem; color:var(--texto-secundario); line-height:1.5;
     overflow-wrap:anywhere; word-break:break-word;
@@ -807,6 +808,7 @@
         ${badgeStock}
       </div>
       <h3>${nombreEsc}</h3>
+      ${p.precio ? `<div class="card-precio">S/ ${p.precio.toFixed(2)}</div>` : ''}
       <p class="card-desc">${escapeHtml(p.descripcion)}</p>
       <button class="btn-ver-desc" type="button" onclick="window.toggleDescripcion(this)">Ver más</button>
       <button class="btn-add-lista" data-producto="${nombreEsc}">
@@ -911,13 +913,15 @@
     const filas = Papa.parse(texto, {header:true, skipEmptyLines:true, transformHeader: h => h.trim().toLowerCase()}).data;
     return filas
       .filter(f => f.nombre && String(f.activo).trim().toUpperCase() === 'TRUE')
+      .filter(f => String(f.ps_activo || '').trim().toUpperCase() !== 'FALSE') // oculto si PetStock lo dio de baja
       .map(f => ({
         orden: Number(f.orden) || 0,
         nombre: f.nombre,
         categoria: (f.categoria || '').trim(),
         descripcion: f.descripcion || '',
         imagen: f.imagen_url || '',
-        disponibilidad: String(f.disponibilidad || '').trim().toLowerCase() === 'stock' ? 'stock' : 'pedido'
+        disponibilidad: String(f.disponibilidad || '').trim().toLowerCase() === 'stock' ? 'stock' : 'pedido',
+        precio: parseFloat(String(f.ps_precioventa || '').replace(',', '.')) || null
       }));
   }
 
