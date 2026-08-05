@@ -608,12 +608,8 @@
     </button>
   </div>
 
-  <div class="filtros">
+  <div class="filtros" id="filtrosContainer">
     <button class="filtro-btn active" data-filter="todos">Todos</button>
-    <button class="filtro-btn" data-filter="comederos">Comederos</button>
-    <button class="filtro-btn" data-filter="higiene">Higiene</button>
-    <button class="filtro-btn" data-filter="juguetes">Juguetes</button>
-    <button class="filtro-btn" data-filter="transporte">Transporte</button>
   </div>
 
   <div class="productos-grid" id="productosGrid">
@@ -743,6 +739,29 @@
     transporte:{bg:'#DDEAF5', svg:'<svg viewBox="0 0 24 24"><rect x="8" y="5" width="8" height="2" rx="1" fill="#1F5270"/><rect x="3" y="7" width="18" height="12" rx="2" fill="#2E6E8E"/><circle cx="12" cy="13" r="3.2" fill="#DDEAF5"/><circle cx="12" cy="11.2" r="0.9" fill="#2E6E8E"/><circle cx="10.3" cy="13.4" r="0.7" fill="#2E6E8E"/><circle cx="13.7" cy="13.4" r="0.7" fill="#2E6E8E"/><circle cx="10.7" cy="15" r="0.7" fill="#2E6E8E"/><circle cx="13.3" cy="15" r="0.7" fill="#2E6E8E"/></svg>'}
   };
 
+  // Paleta de respaldo para categorias nuevas que aun no tienen icono propio disenado.
+  // Se asigna color de forma deterministica (misma categoria = mismo color siempre) usando un hash simple del nombre.
+  const PALETA_RESPALDO = [
+    {bg:'#F3DDF5', color:'#8E4FA0'},
+    {bg:'#FFE0E0', color:'#C24949'},
+    {bg:'#E0F0FF', color:'#2E6E8E'},
+    {bg:'#FFF0D6', color:'#B5680A'},
+    {bg:'#E3F5DC', color:'#4B8B3F'},
+  ];
+  function iconoRespaldo(categoria){
+    let hash = 0;
+    for(let i = 0; i < categoria.length; i++){ hash = (hash * 31 + categoria.charCodeAt(i)) >>> 0; }
+    const paleta = PALETA_RESPALDO[hash % PALETA_RESPALDO.length];
+    const inicial = (categoria.trim()[0] || '?').toUpperCase();
+    return {
+      bg: paleta.bg,
+      svg: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="${paleta.color}"/><text x="12" y="17" font-size="12" font-weight="800" text-anchor="middle" fill="white" font-family="Arial, sans-serif">${inicial}</text></svg>`
+    };
+  }
+  function obtenerIconoCategoria(categoria){
+    return ICONOS_CATEGORIA[categoria] || iconoRespaldo(categoria);
+  }
+
   function escapeHtml(str){
     return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
@@ -783,7 +802,7 @@
   }
 
   function tarjetaHTML(p){
-    const cat = ICONOS_CATEGORIA[p.categoria] || ICONOS_CATEGORIA.comederos;
+    const cat = obtenerIconoCategoria(p.categoria);
     const tieneImagen = p.imagen && p.imagen.trim() !== '';
     const catEsc = escapeHtml(p.categoria);
     const imgHtml = tieneImagen
@@ -879,11 +898,34 @@
     return numero;
   }
 
+  function capitalizar(texto){
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  }
+
+  function generarFiltros(productos){
+    const contenedor = document.getElementById('filtrosContainer');
+    // Se conserva el boton "Todos" (ya esta en el HTML) y se limpia cualquier boton generado antes
+    contenedor.querySelectorAll('.filtro-btn:not([data-filter="todos"])').forEach(b => b.remove());
+
+    const categorias = Array.from(new Set(
+      productos.map(p => p.categoria).filter(c => c && c.trim() !== '')
+    )).sort((a, b) => a.localeCompare(b));
+
+    categorias.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'filtro-btn';
+      btn.dataset.filter = cat;
+      btn.textContent = capitalizar(cat);
+      contenedor.appendChild(btn);
+    });
+  }
+
   function cargarSitio(data){
     try {
       const numeroWhatsapp = aplicarConfig(data.config || {});
       const grid = document.getElementById('productosGrid');
       const productos = (data.productos || []).slice().sort((a,b) => (a.orden||0) - (b.orden||0));
+      generarFiltros(productos);
       grid.innerHTML = productos.map(tarjetaHTML).join('');
 
       const enStock = productos.filter(p => p.disponibilidad === 'stock');
