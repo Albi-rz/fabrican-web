@@ -844,9 +844,12 @@
       ? `<span class="foto-contador">📷 ${p.imagenes.length}</span>` : '';
     const nombreEsc = escapeHtml(p.nombre);
     const slug = slugify(p.nombre);
-    const LIMITE_STOCK_BAJO = 5;
+    // Umbral de "stock bajo": usa el stockMin propio de PetStock si existe;
+    // si el producto no tiene ese dato, cae a un valor generico de respaldo.
+    const LIMITE_STOCK_BAJO_RESPALDO = 5;
+    const umbralStockBajo = p.stockMinimo != null ? p.stockMinimo : LIMITE_STOCK_BAJO_RESPALDO;
     const badgeStock = p.disponibilidad === 'stock'
-      ? (p.stockCantidad > 0 && p.stockCantidad <= LIMITE_STOCK_BAJO
+      ? (p.stockCantidad > 0 && p.stockCantidad <= umbralStockBajo
           ? `<span class="badge-disp badge-bajo">🔥 ¡Últimas ${p.stockCantidad} unidades!</span>`
           : `<span class="badge-disp badge-stock">✅ En stock</span>`)
       : `<span class="badge-disp badge-pedido">🛠️ Bajo pedido</span>`;
@@ -1008,7 +1011,8 @@
           imagenes: imagenes,
           disponibilidad: String(f.disponibilidad || '').trim().toLowerCase() === 'stock' ? 'stock' : 'pedido',
           precio: parseFloat(String(f.ps_precioventa || '').replace(',', '.')) || null,
-          stockCantidad: parseInt(f.ps_stock, 10) || 0
+          stockCantidad: parseInt(f.ps_stock, 10) || 0,
+          stockMinimo: parseInt(f.ps_stockmin, 10) || null
         };
       });
   }
