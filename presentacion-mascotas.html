@@ -416,6 +416,7 @@
   .card.destacado{ animation:destacadoPulse 1.6s ease-in-out 2; }
   .card h3{padding:0 20px; margin-top:14px; font-size:1.15rem; color:var(--texto);}
   .card-precio{ padding:4px 20px 0; font-size:1.05rem; font-weight:800; color:var(--naranja-osc); }
+  .precio-nota{ font-size:0.7rem; font-weight:600; color:var(--texto-secundario); }
   .card-desc{
     padding:8px 20px 0; font-size:0.9rem; color:var(--texto-secundario); line-height:1.5;
     overflow-wrap:anywhere; word-break:break-word;
@@ -437,8 +438,11 @@
   }
   .badge-stock{ background:#DCF3E4; color:#2E7D4F; }
   .badge-pedido{ background:#FFEAD1; color:#B5680A; }
+  .badge-bajo{ background:#FFE0D9; color:#C2410B; animation:pulseBadge 1.8s ease-in-out infinite; }
+  @keyframes pulseBadge{ 0%,100%{opacity:1;} 50%{opacity:0.65;} }
   body.dark .badge-stock{ background:rgba(111,185,143,0.2); color:#8FDBB0; }
   body.dark .badge-pedido{ background:rgba(255,138,61,0.18); color:#FFB877; }
+  body.dark .badge-bajo{ background:rgba(194,65,11,0.25); color:#FFA57A; }
 
   /* POR QUE ELEGIRNOS */
   .porque{
@@ -618,6 +622,8 @@
       <option value="orden">Orden recomendado</option>
       <option value="az">Nombre A-Z</option>
       <option value="za">Nombre Z-A</option>
+      <option value="precio-asc">Precio: menor a mayor</option>
+      <option value="precio-desc">Precio: mayor a menor</option>
     </select>
     <button class="btn-compartir-catalogo" id="btnCompartirCatalogo" title="Copiar link del catálogo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
@@ -838,11 +844,14 @@
       ? `<span class="foto-contador">📷 ${p.imagenes.length}</span>` : '';
     const nombreEsc = escapeHtml(p.nombre);
     const slug = slugify(p.nombre);
+    const LIMITE_STOCK_BAJO = 5;
     const badgeStock = p.disponibilidad === 'stock'
-      ? `<span class="badge-disp badge-stock">✅ En stock</span>`
+      ? (p.stockCantidad > 0 && p.stockCantidad <= LIMITE_STOCK_BAJO
+          ? `<span class="badge-disp badge-bajo">🔥 ¡Últimas ${p.stockCantidad} unidades!</span>`
+          : `<span class="badge-disp badge-stock">✅ En stock</span>`)
       : `<span class="badge-disp badge-pedido">🛠️ Bajo pedido</span>`;
     return `
-    <div class="card fade-in" data-categoria="${escapeHtml(p.categoria)}" data-slug="${slug}" data-orden="${p.orden || 0}" data-nombre="${escapeHtml(p.nombre.toLowerCase())}" data-disponibilidad="${p.disponibilidad}">
+    <div class="card fade-in" data-categoria="${escapeHtml(p.categoria)}" data-slug="${slug}" data-orden="${p.orden || 0}" data-nombre="${escapeHtml(p.nombre.toLowerCase())}" data-disponibilidad="${p.disponibilidad}" data-precio="${p.precio || 0}">
       <div class="card-img" style="background:${cat.bg}; overflow:hidden; position:relative;"${lightboxAttr}>
         ${imgHtml}
         ${contadorFotos}
@@ -855,7 +864,7 @@
         ${badgeStock}
       </div>
       <h3>${nombreEsc}</h3>
-      ${p.precio ? `<div class="card-precio">S/ ${p.precio.toFixed(2)}</div>` : ''}
+      ${p.precio ? `<div class="card-precio">S/ ${p.precio.toFixed(2)}${window.FABRICAN_NOTA_PRECIO ? ` <span class="precio-nota">(${escapeHtml(window.FABRICAN_NOTA_PRECIO)})</span>` : ''}</div>` : ''}
       <p class="card-desc">${escapeHtml(p.descripcion)}</p>
       <button class="btn-ver-desc" type="button" onclick="window.toggleDescripcion(this)">Ver más</button>
       <button class="btn-add-lista" data-producto="${nombreEsc}">
@@ -887,6 +896,7 @@
   };
 
   function aplicarConfig(config){
+    window.FABRICAN_NOTA_PRECIO = (config.precio_nota || '').trim();
     if(config.logo_url){
       document.getElementById('logoContainer').innerHTML =
         `<img src="${escapeHtml(config.logo_url)}" alt="Fabrican" style="height:34px; width:auto;" onerror="window.mostrarLogoFallback(this)">`;
@@ -997,7 +1007,8 @@
           imagen: imagenes[0] || '',
           imagenes: imagenes,
           disponibilidad: String(f.disponibilidad || '').trim().toLowerCase() === 'stock' ? 'stock' : 'pedido',
-          precio: parseFloat(String(f.ps_precioventa || '').replace(',', '.')) || null
+          precio: parseFloat(String(f.ps_precioventa || '').replace(',', '.')) || null,
+          stockCantidad: parseInt(f.ps_stock, 10) || 0
         };
       });
   }
@@ -1134,6 +1145,8 @@
       cardsArray.sort((a, b) => {
         if(criterio === 'az') return a.dataset.nombre.localeCompare(b.dataset.nombre);
         if(criterio === 'za') return b.dataset.nombre.localeCompare(a.dataset.nombre);
+        if(criterio === 'precio-asc') return (Number(a.dataset.precio)||0) - (Number(b.dataset.precio)||0);
+        if(criterio === 'precio-desc') return (Number(b.dataset.precio)||0) - (Number(a.dataset.precio)||0);
         return (Number(a.dataset.orden)||0) - (Number(b.dataset.orden)||0);
       });
       cardsArray.forEach(c => grid.appendChild(c));

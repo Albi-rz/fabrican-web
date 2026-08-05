@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://albi-rz.github.io/fabrican-web/sitemap.xml
