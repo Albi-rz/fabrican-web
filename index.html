@@ -451,6 +451,8 @@
   .card:hover{ transform:translateY(-8px); box-shadow:0 16px 24px rgba(0,0,0,0.12), 0 8px 0 rgba(0,0,0,0.05); }
   .card-img img{ transition:transform .4s ease; }
   .card:hover .card-img img{ transform:scale(1.08); }
+  .card-img-foto{ opacity:0; transition:opacity .35s ease, transform .4s ease; }
+  .card-img-foto.cargada{ opacity:1; }
   .card-img{
     height:160px; display:flex; align-items:center; justify-content:center;
   }
@@ -620,6 +622,8 @@
   }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link rel="preconnect" href="https://lh3.googleusercontent.com">
+<link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
 </head>
 <body>
 <script>
@@ -922,6 +926,17 @@
     return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
+  // Si la imagen viene del CDN de Google (lh3.googleusercontent.com/d/ID), le pedimos
+  // directamente una version redimensionada y liviana en vez de la foto original completa.
+  // Esto reduce muchisimo el peso y el tiempo de carga, sobre todo en datos moviles.
+  function optimizarUrlImagen(url, ancho){
+    if(!url) return url;
+    if(/^https:\/\/lh3\.googleusercontent\.com\/d\//.test(url)){
+      return url.replace(/=.*$/, '') + '=w' + ancho;
+    }
+    return url;
+  }
+
   // Si una imagen de producto no carga (permiso de Drive, link roto, etc.),
   // reemplaza el <img> roto por el icono plano de su categoria.
   window.toggleDescripcion = function(btn){
@@ -962,9 +977,10 @@
     const tieneImagen = p.imagen && p.imagen.trim() !== '';
     const catEsc = escapeHtml(p.categoria);
     const imgHtml = tieneImagen
-      ? `<img src="${escapeHtml(p.imagen)}" alt="${escapeHtml(p.nombre)}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="window.mostrarIconoFallback(this, '${catEsc}')">`
+      ? `<img src="${escapeHtml(optimizarUrlImagen(p.imagen, 500))}" alt="${escapeHtml(p.nombre)}" loading="lazy" class="card-img-foto" onload="this.classList.add('cargada')" style="width:100%; height:100%; object-fit:cover;" onerror="window.mostrarIconoFallback(this, '${catEsc}')">`
       : cat.svg;
-    const imagenesJSON = escapeHtml(JSON.stringify(p.imagenes || []));
+    const imagenesGrandes = (p.imagenes || []).map(u => optimizarUrlImagen(u, 1200));
+    const imagenesJSON = escapeHtml(JSON.stringify(imagenesGrandes));
     const lightboxAttr = tieneImagen ? ` data-lightbox-images="${imagenesJSON}"` : '';
     const contadorFotos = (p.imagenes && p.imagenes.length > 1)
       ? `<span class="foto-contador">📷 ${p.imagenes.length}</span>` : '';
